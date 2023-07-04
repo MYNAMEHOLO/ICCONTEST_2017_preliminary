@@ -64,7 +64,7 @@ reg [3:0] cnt_delay;
 			cs[READ]: ns[READ_DATA] = 1'b1;
 			cs[READ_DATA]: ns[DATA_WRITE] = 1'b1;
 			cs[DATA_WRITE]:begin
-				if((cnt_delay == 4'd15) && (res_addr == 14'd16383)) ns[WRITE_DONE] = 1'b1;
+				if( (res_addr == 14'd16383)) ns[WRITE_DONE] = 1'b1;
 				else if(cnt_delay == 4'd15) ns[READ] = 1'b1;
 				else ns[DATA_WRITE] = 1'b1;
 			end
@@ -117,16 +117,30 @@ reg [3:0] cnt_delay;
 				cs[READ_DATA]:begin
 					sti_rd <= 1'b0;
 					sti_addr <= sti_addr + 1'b1;
-					line_di <= sti_di;
-					res_wr <= 1'b1;
+					line_di [0] <= sti_di[15];
+					line_di [1] <= sti_di[14];
+                    line_di [2] <= sti_di[13];
+                    line_di [3] <= sti_di[12];
+                    line_di [4] <= sti_di[11];
+                    line_di [5] <= sti_di[10];
+                    line_di [6] <= sti_di[9];
+                    line_di [7] <= sti_di[8];
+                    line_di [8] <= sti_di[7];
+                    line_di [9] <= sti_di[6];
+                    line_di [10] <= sti_di[5];
+                    line_di [11] <= sti_di[4];
+                    line_di [12] <= sti_di[3];
+                    line_di [13] <= sti_di[2];
+                    line_di [14] <= sti_di[1];
+                    line_di [15] <= sti_di[0];
 				end
 				cs[DATA_WRITE]:begin
-					res_wr <= (res_addr == 14'd16383)? 1'b0:1'b1;
+					res_wr <= (cnt_delay == 4'd15)? 1'b0:1'b1;
 					res_addr <= res_addr_cnt;
-					res_do <= line_di[cnt];
+					res_do <= line_di[cnt_delay];
 					cnt <= cnt + 1'b1;
 					cnt_delay <= cnt;
-					res_addr_cnt <= res_addr_cnt + 1'd1;
+					res_addr_cnt <= (cnt_delay == 4'd15)?(res_addr_cnt) :(res_addr_cnt+ 1'd1);
 				end
 				cs[WRITE_DONE]:begin
 					res_wr <= 1'b0;
