@@ -28,18 +28,29 @@ parameter IDLE = 0,
 		  CAL_FWP = 11,
 		  WRTIE_FWP = 12,
 		  WAIT_FWP = 13,
-		  DONE = 14;
+		  FWP_DONE = 14,
+		  BWP_ADR_CTR = 15,
+		  BWP_GET_CTR = 16,
+		  BWP_GET_E = 17,
+		  BWP_GET_SW = 18,
+		  BWP_GET_S = 19,
+		  BWP_GET_SE = 20,
+		  CAL_BWP = 21,
+		  WRTIE_BWP = 22,
+		  WAIT_BWP = 23,
+		  DONE = 24;
+		  
 
-reg [ 14:0 ] cs,ns;
+reg [ 24:0 ] cs,ns;
 reg [3:0] cnt_delay;
 //=========================================================================//
 // comb. logic assignment
 // forward min
-	reg [7:0] for_NW;
-	reg [7:0] for_N;
-	reg [7:0] for_NE;
-	reg [7:0] for_W;
-	reg [7:0] for_ctr;
+	reg [7:0] for_NW; // same as E
+	reg [7:0] for_N; // same as SW
+	reg [7:0] for_NE; // same as S
+	reg [7:0] for_W; // same as for_W
+	reg [7:0] for_ctr; // same as for_ctr
 	wire [7:0] for_comp1;
 	wire [7:0] for_comp2;
 	wire [7:0] for_min;
@@ -48,19 +59,20 @@ reg [3:0] cnt_delay;
 	assign for_min = (for_comp1 <= for_comp2)? (for_comp1 + 1'd1): (for_comp2 + 1'd1);
 	
 // backward min
-	reg [7:0] back_center;
-	reg [7:0] back_E;
-	reg [7:0] back_SW;
-	reg [7:0] back_S;
-	reg [7:0] back_SE;
+/*	reg [7:0] for_ctr;
+	reg [7:0] for_NW;
+	reg [7:0] for_N;
+	reg [7:0] for_NE;
+	reg [7:0] for_W;
+*/
 	wire [7:0] back_comp1;
 	wire [7:0] back_comp2;
 	wire [7:0] back_temp;
 	wire [7:0] back_min;
-	assign back_comp1 = (back_E <= back_SW)? back_E: back_SW;
-	assign back_comp2 = (back_S <= back_SE)? back_S: back_SE;
+	assign back_comp1 = (for_NW <= for_N)? for_NW: for_N;
+	assign back_comp2 = (for_NE <= for_W)? for_NE: for_W;
 	assign back_temp = (back_comp1 <= back_comp2)? (back_comp1 + 1'b1):(back_comp2 + 1'b1);
-	assign back_min = (back_center <= back_temp)? (back_center): (back_temp);
+	assign back_min = (for_ctr <= back_temp)? (for_ctr): (back_temp);
 
 // position assignment
 	wire [13:0] ker_NW;
@@ -111,8 +123,21 @@ reg [3:0] cnt_delay;
 			cs[CAL_FWP]: ns[WRTIE_FWP] = 1'b1;
 			cs[WRTIE_FWP]: ns[WAIT_FWP] = 1'b1;
 			cs[WAIT_FWP]: begin
-				if(ker_ctr == 14'd16254) ns[DONE] = 1'b1;
+				if(ker_ctr == 14'd16254) ns[FWP_DONE] = 1'b1;
 				else ns[ADR_CTR] = 1'b1;
+			end
+			cs[FWP_DONE]: ns[BWP_ADR_CTR] = 1'b1;
+			cs[BWP_ADR_CTR]: ns[BWP_GET_CTR] = 1'b1;
+			cs[BWP_GET_CTR]: ns[BWP_GET_E] = 1'b1;
+			cs[BWP_GET_E]: ns[BWP_GET_SW] = 1'b1;
+			cs[BWP_GET_SW]: ns[BWP_GET_S] = 1'b1;
+			cs[BWP_GET_S]: ns[BWP_GET_SE] = 1'b1;
+			cs[BWP_GET_SE]: ns[CAL_BWP] = 1'b1;
+			cs[CAL_BWP]: ns[WRTIE_BWP] = 1'b1;
+			cs[WRTIE_BWP]: ns[WAIT_BWP] = 1'b1;
+			cs[WAIT_BWP]:begin
+				if(ker_ctr == 14'd129) ns[DONE] = 1'b1;
+				else ns[BWP_ADR_CTR] = 1'b1;
 			end
 			cs[DONE]: ns[DONE] = 1'b1;
 			default: ns[IDLE] = 1'b1;
@@ -143,11 +168,6 @@ reg [3:0] cnt_delay;
 			for_NE <= 'd0;
 			for_W <= 'd0;
 			for_ctr <= 'd0;
-			back_center <= 'd0;
-			back_E <= 'd0;
-			back_SW <= 'd0;
-			back_S <= 'd0;
-			back_SE <= 'd0;
 			ker_ctr <= 14'd129;
 			fwpass_finish <= 'd0;
 			//fwpass bad bad
@@ -166,12 +186,12 @@ reg [3:0] cnt_delay;
 				cnt <= 'd0;
 				cnt_delay <= 'd0;
 				res_addr_cnt <= 'd0;
-				back_center <= 'd0;
-				back_E <= 'd0;
-				back_SW <= 'd0;
-				back_S <= 'd0;
-				back_SE <= 'd0;
-				ker_ctr <= 14'd129;
+				for_ctr <= 'd0;
+				for_NW <= 'd0;
+				for_N <= 'd0;
+				for_NE <= 'd0;
+				for_W <= 'd0;
+				fwpass_finish <= 'd0;
 				end
 				cs[READ]:begin	
 					sti_rd <= 1'b1;
@@ -265,11 +285,68 @@ reg [3:0] cnt_delay;
 						ker_ctr <= ker_ctr + 1'd1; 
 					end
 				end
-				cs[DONE]:begin
+				cs[FWP_DONE]:begin
+					sti_rd <= 'd0;
+					sti_addr <= 'd0;
 					res_wr <= 'd0;
-					res_rd <= 'd0;
-					done <= 1'd1;
+					res_rd <= 'd1;
+					res_addr <= 14'd16254;
+					res_do <= 'd0;
+					line_di <= 'd0;
+					cnt <= 'd0;
+					cnt_delay <= 'd0;
+					res_addr_cnt <= 'd0;
+					done <= 1'b0;
+					ker_ctr <= 14'd16254;
 					fwpass_finish <= 1'd1;
+				end
+				cs[BWP_ADR_CTR]:begin
+					res_rd <= 1'd1;
+					res_wr <= 1'd0;
+					res_addr <= ker_ctr;
+				end
+				cs[BWP_GET_CTR]:begin
+					res_addr <= ker_E;
+					for_ctr <= res_di;
+				end
+				cs[BWP_GET_E]:begin
+					res_addr <= ker_SW;
+					for_NW <= res_di;
+				end
+				cs[BWP_GET_SW]:begin
+					res_addr <= ker_S;
+					for_N <= res_di; 
+				end
+				cs[BWP_GET_S]:begin
+					res_addr <= ker_SE;
+					for_NE <= res_di;
+				end
+				cs[BWP_GET_SE]:begin
+					res_addr <= ker_ctr;
+					res_rd <= 1'd0;
+					for_W <= res_di;
+				end
+				cs[CAL_BWP]:begin
+					res_do <= (for_ctr == 8'd0)? 8'd0 : back_min;
+				end
+				cs[WRTIE_BWP]:begin
+					res_wr <= 1'b1;
+					res_addr_cnt <= res_addr_cnt + 1'd1;
+				end
+				cs[WAIT_BWP]:begin
+					res_wr <= 1'b0;
+					if(res_addr_cnt == 14'd126)begin
+						res_addr_cnt <= 'd0;
+						ker_ctr <= ker_ctr - 14'd3;
+					end
+					else begin
+						ker_ctr <= ker_ctr - 1'd1; 
+					end
+				end
+				cs[DONE]:begin
+					res_wr <= 1'd0;
+					res_rd <= 1'd0;
+					done <= 1'd1;
 				end
 			endcase
 		end
