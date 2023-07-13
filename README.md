@@ -1,8 +1,10 @@
 # ICCONTEST_2017_pre
 ## 本題評分標準及結果
+### 最終結果為CLASS A
 ### 本題評分標準為 Area < 12500 並且 simulation time小於1,920,000ns 為 Class A
 ### 本作 Cell Area：11645
 ### Simulation Time: 3,052,330ns
+### 本題不能更改sdc但可以更改其中的Cycle,可參考作者提供的Area,Timing log.
 ## DT(距離變換)
 本題描述的演算法是關於圖像前景及背景的距離變換的演算法，由於這一題使用到R/W single port的RAM，且正負緣判斷較先前寫過的題目有些許不同，導致我本人在時序處理上面多花了一些時間，最後也為了debugging方便把狀態機的數量增加到20餘個不過仍然有一些可化簡的空間。
 
